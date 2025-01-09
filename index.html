@@ -1,0 +1,176 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Vacaciones</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #bb86fc;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #a0a0a0;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+        }
+        button {
+            background-color: #bb86fc;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #9b59b6;
+        }
+        .result {
+            margin-top: 20px;
+            background-color: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+        .result h3 {
+            margin-top: 0;
+            color: #28a745;
+        }
+        .warning {
+            color: #ff6b6b;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #2c2c2c;
+            border-left: 4px solid #ff6b6b;
+        }
+        .icon {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Calculadora de Vacaciones</h2>
+    <label for="basicSalary"><span class="icon">💰</span>Salario Básico:</label>
+    <input type="number" id="basicSalary" placeholder="Ingresa tu salario básico mensual" required>
+    <label for="startDate"><span class="icon">📅</span>Día de Salida:</label>
+    <input type="date" id="startDate" required>
+    <label for="endDate"><span class="icon">📅</span>Día de Entrada:</label>
+    <input type="date" id="endDate" required>
+    <label for="vacationType"><span class="icon">🏖️</span>Tipo de Vacaciones:</label>
+    <select id="vacationType">
+        <option value="completas">Completas (15 días)</option>
+        <option value="compensadas">Compensadas (Ej: 8 días disfrutados, 7 compensados)</option>
+    </select>
+    <button onclick="calcularVacaciones()"><span class="icon">🔍</span>Calcular</button>
+    <div id="result" class="result" style="display: none;">
+        <h3>Resultado:</h3>
+        <p><strong>Días de Disfrute:</strong> <span id="daysOff"></span></p>
+        <p><strong>Vacaciones Seleccionadas:</strong> <span id="selectedType"></span></p>
+        <p><strong>Pago por Vacaciones:</strong> $<span id="vacationPay"></span></p>
+        <p><strong>Pago por Vacaciones Compensados:</strong> $<span id="compensatedPay"></span></p>
+        <p><strong>Pago por Días Trabajados (con auxilio y descuentos):</strong> $<span id="workPay"></span></p>
+        <p><strong>Total a Recibir:</strong> $<span id="totalPay"></span></p>
+    </div>
+    <button id="printResult" style="display: none;" onclick="imprimirResultado()">🖨️ Imprimir resultado</button>
+    <div id="vacationWarning" class="warning" style="display: none;">
+        <strong>Advertencia:</strong> Si eliges vacaciones completas, no puedes tener menos de 15 días de disfrute.
+    </div>
+</div>
+<script>
+    function calcularVacaciones() {
+        const basicSalary = parseFloat(document.getElementById('basicSalary').value);
+        const startDate = new Date(document.getElementById('startDate').value);
+        const endDate = new Date(document.getElementById('endDate').value);
+        const vacationType = document.getElementById('vacationType').value;
+        const transportAllowance = 162000;
+        const healthPensionRate = 0.08;
+
+        if (isNaN(basicSalary) || isNaN(startDate) || isNaN(endDate) || endDate < startDate) {
+            alert("Por favor, ingresa valores válidos.");
+            return;
+        }
+
+        // Obtener los días del mes del inicio de vacaciones
+        const daysInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+        const dailySalary = basicSalary / 30;  // Siempre dividido entre 30 días
+        const transportDaily = transportAllowance / 30;
+
+        const diffTime = endDate - startDate;
+        const daysOff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (vacationType === "completas" && daysOff < 15) {
+            document.getElementById('vacationWarning').style.display = "block";
+            return;
+        } else {
+            document.getElementById('vacationWarning').style.display = "none";
+        }
+
+        const vacationPay = dailySalary * daysOff;
+        let compensatedPay = 0;
+        let workPay = 0;
+        let deductions = 0;
+
+        if (vacationType === "compensadas") {
+            compensatedPay = dailySalary * 7;
+        }
+
+        const workDays = daysInMonth - daysOff;
+        const grossWorkPay = (dailySalary * workDays) + (transportDaily * workDays);
+        deductions = basicSalary * healthPensionRate;
+        workPay = grossWorkPay - deductions;
+
+        const totalPay = vacationPay + compensatedPay + workPay;
+        const formatCurrency = (value) => value.toLocaleString('es-CO');
+
+        document.getElementById('daysOff').textContent = daysOff + " días";
+        document.getElementById('selectedType').textContent =
+            vacationType === "completas" ? "Completas (15 días)" : "Compensadas (8 días disfrutados, 7 compensados)";
+        document.getElementById('vacationPay').textContent = formatCurrency(vacationPay);
+        document.getElementById('compensatedPay').textContent = formatCurrency(compensatedPay);
+        document.getElementById('workPay').textContent = formatCurrency(workPay);
+        document.getElementById('totalPay').textContent = formatCurrency(totalPay);
+        document.getElementById('result').style.display = "block";
+        document.getElementById('printResult').style.display = "block";
+    }
+
+    function imprimirResultado() {
+        const resultContent = document.getElementById('result').innerHTML;
+        const printWindow = window.open('', '', 'width=800,height=600');
+        printWindow.document.write('<html><head><title>Resultado de Vacaciones</title></head><body>');
+        printWindow.document.write(resultContent);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.print();
+    }
+</script>
+</body>
+</html>
